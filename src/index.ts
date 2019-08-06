@@ -1,1 +1,3 @@
-export { createStore } from './createStore'
+import createBistate from './bistate'
+
+export { createBistate }
