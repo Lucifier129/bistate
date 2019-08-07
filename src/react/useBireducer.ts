@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect } from 'react'
+import { useRef, useCallback, useLayoutEffect } from 'react'
 import useBistate from './useBistate'
 import { isFunction } from '../util'
 
@@ -11,7 +11,7 @@ export default function useBireducer(reducer, initialState) {
     })
   }, [])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isFunction(reducer)) {
       throw new Error('reducer must be a function')
     }

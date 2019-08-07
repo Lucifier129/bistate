@@ -8,6 +8,8 @@ export default function createStore(initialState) {
 
   let listenerList = []
 
+  let hasListened = false
+
   let subscribe = listener => {
     if (!isFunction(listener)) {
       throw new Error(`Expected listener to be a function, but got ${listener}`)
@@ -15,6 +17,13 @@ export default function createStore(initialState) {
 
     if (!listenerList.includes(listener)) {
       listenerList.push(listener)
+    }
+
+    // publish before listening
+    if (!hasListened) {
+      hasListened = true
+      // trigger listener directly
+      if (hasPublished) listener(current)
     }
 
     return () => {
@@ -25,7 +34,10 @@ export default function createStore(initialState) {
     }
   }
 
+  let hasPublished = false
+
   let publish = state => {
+    hasPublished = true
     current = state
     watch(current, publish)
 

@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useState, useEffect } from 'react'
+import { useMemo, useCallback, useState, useLayoutEffect } from 'react'
 import createStore from '../createStore'
 import { mutate } from '../createBistate'
 import { isFunction, merge } from '../util'
@@ -26,7 +26,7 @@ export default function useBistate(initialState) {
     [store]
   )
 
-  useEffect(() => store.subscribe(setState), [store])
+  useLayoutEffect(() => store.subscribe(setState), [store])
 
   return [state, updateState]
 }

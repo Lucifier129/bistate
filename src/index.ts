@@ -1,3 +1,4 @@
-import createBistate from './createBistate'
+import { mutate, remove, isBistate } from './createBistate'
+import createStore from './createStore'
 
-export { createBistate }
+export { createStore, mutate, remove, isBistate }

@@ -236,3 +236,31 @@ export const watch = (state, watcher) => {
 
   return state[BISTATE].watch(watcher)
 }
+
+export const remove = state => {
+  if (!isBistate(state)) {
+    throw new Error(`Expected state to be a bistate, but received ${state}`)
+  }
+
+  let parent = state[BISTATE].getParent()
+
+  if (!parent) return
+
+  mutate(() => {
+    if (isArray(parent)) {
+      let index = parent.indexOf(state)
+      parent.splice(index, 1)
+      return
+    }
+
+    if (isObject(parent)) {
+      for (let key in parent) {
+        let value = parent[key]
+        if (value === state) {
+          delete parent[key]
+          return
+        }
+      }
+    }
+  })
+}
