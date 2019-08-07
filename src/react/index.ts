@@ -1,4 +1,5 @@
 import useBistate from './useBistate'
 import useBireducer from './useBireducer'
+import useMutate from './useMutate'
 
-export { useBireducer, useBistate }
+export { useBistate, useBireducer, useMutate }
