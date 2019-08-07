@@ -2,135 +2,190 @@ import { isFunction, isArray, isObject, merge, createDeferred } from './util'
 
 type Source = any[] | object
 
-type Listener<T> = (state: T) => void
-type Unlisten = () => void
+type Watcher<T> = (state: T) => void
+type Unwatch = () => void
 
 type createBistate<T extends Source> = {
   getState: () => T
-  subscribe: (listener: Listener<T>) => Unlisten
+  watch: (watcher: Watcher<T>) => Unwatch
 }
 
 const BISTATE = Symbol('BISTATE')
 const isBistate = input => !!(input && input[BISTATE])
 
-const fillObjectBistate = (proxy, object, target, scapegoat, reuse) => {
-  if (reuse) {
-    for (let key in object) {
-      let value = object[key]
+const getBistateValue = (value, currentProxy, previousProxy) => {
+  if (previousProxy && isBistate(value)) {
+    let parent = value[BISTATE].getParent()
 
-      // reuse current bistate
-      if (isBistate(value)) {
-        value = value[BISTATE].compute()
-        value[BISTATE].setParent(proxy)
-      } else if (isArray(value) || isObject(value)) {
-        value = createBistate(value, true)
-        value[BISTATE].setParent(proxy)
-      }
-
-      scapegoat[key] = value
-      target[key] = value
+    // reuse bistate
+    if (parent === previousProxy) {
+      value = value[BISTATE].compute()
+    } else {
+      value = createBistate(value)
     }
-  } else {
-    for (let key in object) {
-      let value = object[key]
+  } else if (isArray(value) || isObject(value)) {
+    value = createBistate(value)
+  }
 
-      // create bistate directly
-      if (isArray(value) || isObject(value)) {
-        value = createBistate(value)
-        value[BISTATE].setParent(proxy)
-      }
+  if (isBistate(value)) {
+    value[BISTATE].setParent(currentProxy)
+  }
 
-      scapegoat[key] = value
-      target[key] = value
-    }
+  return value
+}
+
+const fillObjectBistate = (currentProxy, initialObject, target, scapegoat, previousProxy) => {
+  for (let key in initialObject) {
+    let value = getBistateValue(initialObject[key], currentProxy, previousProxy)
+    scapegoat[key] = value
+    target[key] = value
   }
 }
 
-const fileArrayBistate = (proxy, array, target, scapegoat, reuse) => {
-  if (reuse) {
-    for (let i = 0; i < array.length; i++) {
-      let item = array[i]
-
-      // reuse current bistate
-      if (isBistate(item)) {
-        item = item[BISTATE].compute()
-        item[BISTATE].setParent(proxy)
-      } else if (isArray(item) || isObject(item)) {
-        item = createBistate(item, true)
-        item[BISTATE].setParent(proxy)
-      }
-
-      scapegoat[i] = item
-      target[i] = item
-    }
-  } else {
-    for (let i = 0; i < array.length; i++) {
-      let item = array[i]
-
-      // create bistate directly
-      if (isArray(item) || isObject(item)) {
-        item = createBistate(item)
-        item[BISTATE].setParent(proxy)
-      }
-
-      scapegoat[i] = item
-      target[i] = item
-    }
+const fileArrayBistate = (currentProxy, initialArray, target, scapegoat, previousProxy) => {
+  for (let i = 0; i < initialArray.length; i++) {
+    let item = getBistateValue(initialArray[i], currentProxy, previousProxy)
+    scapegoat[i] = item
+    target[i] = item
   }
 }
 
-const createBistate = (initialState, reuse = false) => {
-  let isArrayType = isArray(initialState)
-  let isObjectType = isObject(initialState)
+let isBatchMode = false
+let pendingBistateList = []
+export const batch = f => {
+  if (!isFunction(f)) {
+    throw new Error(`Expected f in batch(f) is a function, but got ${f} `)
+  }
 
-  if (!isArrayType && !isObjectType) {
+  let previousFlag = isBatchMode
+
+  isBatchMode = true
+
+  f()
+
+  if (previousFlag) return
+
+  let list = pendingBistateList
+  pendingBistateList = []
+
+  for (let i = 0; i < list.length; i++) {
+    let item = list[i]
+    item[BISTATE].trigger()
+  }
+}
+
+const createBistate = (initialState, previousProxy = null) => {
+  if (!isArray(initialState) && !isObject(initialState)) {
     throw new Error(`Expected initialState to be array or plain object, but got ${initialState}`)
-  }
-
-  let uid = 0
-
-  let isDirty = false
-  let notify = () => {
-    isDirty = true
-
-    if (parent) {
-      parent[BISTATE].notify()
-    }
-
-    if (consuming) {
-      // tslint:disable-next-line: no-floating-promises
-      Promise.resolve(++uid).then(next)
-    }
-  }
-
-  let next = n => {
-    if (n !== uid) return
-    if (listener) {
-      let result = compute()
-      if (result !== state) {
-        listener(result)
-      }
-    }
-  }
-
-  let compute = () => {
-    if (!isDirty) return state
-    let result = createBistate(scapegoat, true)
-    scapegoat = null
-    deleteParent()
-    return result
   }
 
   let scapegoat = isArray(initialState) ? [] : {}
   let target = isArray(initialState) ? [] : {}
 
+  let consuming = false
+  let watcher = null
+  let watch = f => {
+    if (watcher) throw new Error(`bistate can be watched twice`)
+    watcher = f
+    consuming = true
+    return () => {
+      consuming = false
+      watcher = null
+    }
+  }
+
+  let parent = null
+  let setParent = input => {
+    parent = input
+  }
+  let getParent = () => {
+    return parent
+  }
+  let deleteParent = () => {
+    parent = null
+  }
+
+  let uid = 0
+  let isDirty = false
+  let notify = () => {
+    isDirty = true
+
+    if (consuming) {
+      if (isBatchMode) {
+        if (!pendingBistateList.includes(currentProxy)) {
+          pendingBistateList.push(currentProxy)
+        }
+      } else {
+        // tslint:disable-next-line: no-floating-promises
+        Promise.resolve(++uid).then(debounceTrigger)
+      }
+    }
+
+    if (parent) {
+      parent[BISTATE].notify()
+    }
+  }
+
+  let debounceTrigger = n => {
+    // debounce check
+    if (n !== uid) return
+    trigger()
+  }
+
+  let trigger = () => {
+    if (watcher) {
+      let nextProxy = compute()
+      if (nextProxy !== currentProxy) {
+        watcher(nextProxy)
+      }
+    }
+  }
+
+  let compute = () => {
+    if (!isDirty) return currentProxy
+    /**
+     * redo
+     * create nextProxy based on scapegoat and currentProxy
+     * reuse unchanged value as possible
+     */
+    let nextProxy = createBistate(scapegoat, currentProxy)
+    /**
+     * undo
+     * clear scapegoat to keep currentProxy as immutable
+     */
+    scapegoat = null
+    deleteParent()
+    return nextProxy
+  }
+
+  let internal = { watch, setParent, getParent, deleteParent, notify, compute, trigger }
+
   let handlers = {
     get: (target, key) => {
       if (key === BISTATE) return internal
+
       if (scapegoat) {
         return Reflect.get(scapegoat, key)
       } else {
         return Reflect.get(target, key)
+      }
+    },
+    set: (_, key, value) => {
+      if (scapegoat) {
+        let result = Reflect.set(scapegoat, key, value)
+        notify()
+        return result
+      } else {
+        throw new Error(`state is immutable, it's not allow to set property ${key}`)
+      }
+    },
+    deleteProperty: (_, key) => {
+      if (scapegoat) {
+        let result = Reflect.deleteProperty(scapegoat, key)
+        notify()
+        return result
+      } else {
+        throw new Error(`state is immutable, it's not allow to delete property ${key}`)
       }
     },
     has: (target, key) => {
@@ -140,78 +195,66 @@ const createBistate = (initialState, reuse = false) => {
         return Reflect.has(target, key)
       }
     },
-    set: (target, key, value) => {
-      if (scapegoat) {
-        let result = Reflect.set(scapegoat, key, value)
-        notify()
-        return result
-      } else {
-        throw new Error(`state is immutable, can not be setted property ${key}`)
-      }
-    },
     ownKeys: target => {
       if (scapegoat) {
         return Reflect.ownKeys(scapegoat)
       } else {
         return Reflect.ownKeys(target)
       }
-    },
-    deleteProperty: (target, key) => {
-      if (scapegoat) {
-        let result = Reflect.deleteProperty(scapegoat, key)
-        notify()
-        return result
-      } else {
-        throw new Error(`state is immutable, can not be deleted property ${key}`)
-      }
     }
   }
 
-  let state = new Proxy(target, handlers)
+  let currentProxy = new Proxy(target, handlers)
 
-  if (isArray(state)) {
-    fileArrayBistate(state, initialState, target, scapegoat, reuse)
+  if (isArray(currentProxy)) {
+    fileArrayBistate(currentProxy, initialState, target, scapegoat, previousProxy)
   } else {
-    fillObjectBistate(state, initialState, target, scapegoat, reuse)
+    fillObjectBistate(currentProxy, initialState, target, scapegoat, previousProxy)
   }
 
-  let consuming = false
-  let listener = null
-  let subscribe = f => {
-    if (listener) throw new Error(`bistate can be listened twice`)
-    listener = f
-    consuming = true
-    return () => {
-      consuming = false
-      listener = null
-    }
-  }
+  // clear previousProxy
+  previousProxy = null
+  // clear initialState
+  initialState = null
 
-  let parent = null
-  let setParent = input => {
-    parent = input
-  }
-  let deleteParent = () => {
-    parent = null
-  }
-
-  let internal = { subscribe, setParent, deleteParent, notify, compute }
-
-  return state
+  return currentProxy
 }
 
 export default function(initialState) {
-  return createBistate(initialState, false)
+  return createBistate(initialState, null)
 }
 
+export const watch = (state, watcher) => {
+  if (!isBistate(state)) {
+    throw new Error(`Expected state to be a bistate, but received ${state}`)
+  }
+
+  if (!isFunction(watcher)) {
+    throw new Error(`Expected watcher to be a function, but received ${watcher}`)
+  }
+
+  return state[BISTATE].watch(watcher)
+}
+
+// inline test for dev
 let test = createBistate([{ value: 1 }, { value: 2 }, { value: 3 }])
 
-test[BISTATE].subscribe(state => {
+let counter = createBistate({ value: 0 })
+
+watch(test, state => {
   console.log('state', state, test)
   debugger
 })
 
-test.sort((a, b) => Math.random() - 0.5)
+watch(counter, state => {
+  console.log('state', state, counter)
+  debugger
+})
+
+batch(() => {
+  test.sort((a, b) => Math.random() - 0.5)
+  counter.value += 1
+})
 
 setInterval(() => {}, 1000)
 
