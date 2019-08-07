@@ -1,4 +1,4 @@
-import { isFunction, isArray, isObject, merge, createDeferred } from './util'
+import { isFunction, isArray, isObject } from './util'
 
 type Source = any[] | object
 
@@ -11,7 +11,7 @@ type createBistate<T extends Source> = {
 }
 
 const BISTATE = Symbol('BISTATE')
-const isBistate = input => !!(input && input[BISTATE])
+export const isBistate = input => !!(input && input[BISTATE])
 
 const getBistateValue = (value, currentProxy, previousProxy) => {
   if (previousProxy && isBistate(value)) {
@@ -50,23 +50,25 @@ const fileArrayBistate = (currentProxy, initialArray, target, scapegoat, previou
   }
 }
 
-let isBatchMode = false
-let pendingBistateList = []
-export const batch = f => {
+let isMutable = false
+let dirtyStateList = []
+
+export const mutate = f => {
   if (!isFunction(f)) {
-    throw new Error(`Expected f in batch(f) is a function, but got ${f} `)
+    throw new Error(`Expected f in mutate(f) is a function, but got ${f} `)
   }
 
-  let previousFlag = isBatchMode
-
-  isBatchMode = true
+  let previousFlag = isMutable
+  isMutable = true
 
   f()
 
   if (previousFlag) return
 
-  let list = pendingBistateList
-  pendingBistateList = []
+  let list = dirtyStateList
+
+  isMutable = false
+  dirtyStateList = []
 
   for (let i = 0; i < list.length; i++) {
     let item = list[i]
@@ -86,12 +88,22 @@ const createBistate = (initialState, previousProxy = null) => {
   let watcher = null
   let watch = f => {
     if (watcher) throw new Error(`bistate can be watched twice`)
+    if (!scapegoat) throw new Error(`current state is immutable, can not be watched now`)
+    if (parent) throw new Error(`Only root node can be watched`)
+
     watcher = f
-    consuming = true
-    return () => {
-      consuming = false
-      watcher = null
+
+    if (isDirty) {
+      trigger()
+    } else {
+      consuming = true
     }
+
+    return unwatch
+  }
+  let unwatch = () => {
+    consuming = false
+    watcher = null
   }
 
   let parent = null
@@ -105,20 +117,12 @@ const createBistate = (initialState, previousProxy = null) => {
     parent = null
   }
 
-  let uid = 0
   let isDirty = false
   let notify = () => {
     isDirty = true
 
-    if (consuming) {
-      if (isBatchMode) {
-        if (!pendingBistateList.includes(currentProxy)) {
-          pendingBistateList.push(currentProxy)
-        }
-      } else {
-        // tslint:disable-next-line: no-floating-promises
-        Promise.resolve(++uid).then(debounceTrigger)
-      }
+    if (consuming && !dirtyStateList.includes(currentProxy)) {
+      dirtyStateList.push(currentProxy)
     }
 
     if (parent) {
@@ -126,18 +130,14 @@ const createBistate = (initialState, previousProxy = null) => {
     }
   }
 
-  let debounceTrigger = n => {
-    // debounce check
-    if (n !== uid) return
-    trigger()
-  }
-
   let trigger = () => {
-    if (watcher) {
-      let nextProxy = compute()
-      if (nextProxy !== currentProxy) {
-        watcher(nextProxy)
-      }
+    if (!watcher) return
+
+    let f = watcher
+    let nextProxy = compute()
+
+    if (nextProxy !== currentProxy) {
+      f(nextProxy)
     }
   }
 
@@ -155,6 +155,7 @@ const createBistate = (initialState, previousProxy = null) => {
      */
     scapegoat = null
     deleteParent()
+    unwatch()
     return nextProxy
   }
 
@@ -164,14 +165,14 @@ const createBistate = (initialState, previousProxy = null) => {
     get: (target, key) => {
       if (key === BISTATE) return internal
 
-      if (scapegoat) {
+      if (isMutable && scapegoat) {
         return Reflect.get(scapegoat, key)
       } else {
         return Reflect.get(target, key)
       }
     },
     set: (_, key, value) => {
-      if (scapegoat) {
+      if (isMutable && scapegoat) {
         let result = Reflect.set(scapegoat, key, value)
         notify()
         return result
@@ -180,7 +181,7 @@ const createBistate = (initialState, previousProxy = null) => {
       }
     },
     deleteProperty: (_, key) => {
-      if (scapegoat) {
+      if (isMutable && scapegoat) {
         let result = Reflect.deleteProperty(scapegoat, key)
         notify()
         return result
@@ -189,14 +190,14 @@ const createBistate = (initialState, previousProxy = null) => {
       }
     },
     has: (target, key) => {
-      if (scapegoat) {
+      if (isMutable && scapegoat) {
         return Reflect.has(scapegoat, key)
       } else {
         return Reflect.has(target, key)
       }
     },
     ownKeys: target => {
-      if (scapegoat) {
+      if (isMutable && scapegoat) {
         return Reflect.ownKeys(scapegoat)
       } else {
         return Reflect.ownKeys(target)
@@ -235,27 +236,3 @@ export const watch = (state, watcher) => {
 
   return state[BISTATE].watch(watcher)
 }
-
-// inline test for dev
-let test = createBistate([{ value: 1 }, { value: 2 }, { value: 3 }])
-
-let counter = createBistate({ value: 0 })
-
-watch(test, state => {
-  console.log('state', state, test)
-  debugger
-})
-
-watch(counter, state => {
-  console.log('state', state, counter)
-  debugger
-})
-
-batch(() => {
-  test.sort((a, b) => Math.random() - 0.5)
-  counter.value += 1
-})
-
-setInterval(() => {}, 1000)
-
-// test[0].value += 1

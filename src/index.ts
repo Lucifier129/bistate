@@ -1,3 +1,3 @@
-import createBistate from './bistate'
+import createBistate from './createBistate'
 
 export { createBistate }

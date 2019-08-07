@@ -20,6 +20,8 @@ export const merge = <T = any>(target: object | Array<T>, source: object | Array
     })
   } else if (isObject(source) && isObject(target)) {
     Object.assign(target, source)
+  } else {
+    throw new Error(`Failed to merge, target and source is not the same type of array or object`)
   }
   return target
 }
