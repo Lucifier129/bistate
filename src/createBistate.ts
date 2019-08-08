@@ -1,4 +1,4 @@
-import { isFunction, isArray, isObject } from './util'
+import { isFunction, isThenable, isArray, isObject } from './util'
 
 type Source = any[] | object
 
@@ -53,18 +53,7 @@ const fileArrayBistate = (currentProxy, initialArray, target, scapegoat, previou
 let isMutable = false
 let dirtyStateList = []
 
-export const mutate = f => {
-  if (!isFunction(f)) {
-    throw new Error(`Expected f in mutate(f) is a function, but got ${f} `)
-  }
-
-  let previousFlag = isMutable
-  isMutable = true
-
-  f()
-
-  if (previousFlag) return
-
+const release = () => {
   let list = dirtyStateList
 
   isMutable = false
@@ -73,6 +62,27 @@ export const mutate = f => {
   for (let i = 0; i < list.length; i++) {
     let item = list[i]
     item[BISTATE].trigger()
+  }
+}
+
+export const mutate = f => {
+  if (!isFunction(f)) {
+    throw new Error(`Expected f in mutate(f) is a function, but got ${f} `)
+  }
+
+  let previousFlag = isMutable
+
+  isMutable = true
+
+  let result = f()
+
+  try {
+    if (isThenable(result)) {
+      throw new Error(`mutate(f) don't support async function`)
+    }
+  } finally {
+    if (previousFlag) return
+    release()
   }
 }
 
