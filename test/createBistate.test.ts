@@ -345,4 +345,32 @@ describe('createBistate', () => {
 
     expect(n).toBe(2)
   })
+
+  it('can remove object property by remove function', () => {
+    let state = createBistate({
+      a: {
+        value: 1
+      }
+    })
+    let n = 0
+
+    watch(state, nextState => {
+      expect(n).toBe(0)
+      n += 1
+      expect(nextState).toEqual({})
+      expect(state).toEqual({
+        a: {
+          value: 1
+        }
+      })
+    })
+
+    expect(() => {
+      remove(state.a)
+    }).toThrow()
+
+    mutate(() => {
+      remove(state.a)
+    })
+  })
 })

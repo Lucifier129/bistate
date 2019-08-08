@@ -23,6 +23,7 @@
 - Deep updates are a breeze
 - Boilerplate reduction. Less noise, more concise code.
 - Small script size
+- supports react-hooks api 
 
 ## Environment Requirement
 
