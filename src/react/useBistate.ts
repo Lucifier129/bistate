@@ -1,7 +1,6 @@
-import { useMemo, useCallback, useState, useLayoutEffect } from 'react'
+import { useMemo, useState, useLayoutEffect } from 'react'
 import createStore from '../createStore'
-import { mutate } from '../createBistate'
-import { isFunction, merge } from '../util'
+import { isFunction } from '../util'
 
 export default function useBistate(initialState) {
   let store = useMemo(() => {
@@ -13,20 +12,7 @@ export default function useBistate(initialState) {
 
   let [state, setState] = useState(store.getState())
 
-  let updateState = useCallback(
-    nextState => {
-      let currentState = store.getState()
-
-      if (isFunction(nextState)) {
-        mutate(() => nextState(currentState))
-      } else {
-        mutate(() => merge(currentState, nextState))
-      }
-    },
-    [store]
-  )
-
   useLayoutEffect(() => store.subscribe(setState), [store])
 
-  return [state, updateState]
+  return state
 }

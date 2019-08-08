@@ -256,21 +256,19 @@ export const remove = state => {
 
   if (!parent) return
 
-  mutate(() => {
-    if (isArray(parent)) {
-      let index = parent.indexOf(state)
-      parent.splice(index, 1)
-      return
-    }
+  if (isArray(parent)) {
+    let index = parent.indexOf(state)
+    parent.splice(index, 1)
+    return
+  }
 
-    if (isObject(parent)) {
-      for (let key in parent) {
-        let value = parent[key]
-        if (value === state) {
-          delete parent[key]
-          return
-        }
+  if (isObject(parent)) {
+    for (let key in parent) {
+      let value = parent[key]
+      if (value === state) {
+        delete parent[key]
+        return
       }
     }
-  })
+  }
 }

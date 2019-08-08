@@ -1,22 +1,11 @@
-import { useRef, useCallback, useLayoutEffect } from 'react'
 import useBistate from './useBistate'
-import { isFunction } from '../util'
+import useMutate from './useMutate'
 
 export default function useBireducer(reducer, initialState) {
-  let [state, updateState] = useBistate(initialState)
-  let reducerRef = useRef(reducer)
-  let dispatch = useCallback(action => {
-    updateState(currentState => {
-      reducerRef.current(currentState, action)
-    })
-  }, [])
-
-  useLayoutEffect(() => {
-    if (!isFunction(reducer)) {
-      throw new Error('reducer must be a function')
-    }
-    reducerRef.current = reducer
-  }, [reducer])
+  let state = useBistate(initialState)
+  let dispatch = useMutate(action => {
+    reducer(state, action)
+  })
 
   return [state, dispatch]
 }
