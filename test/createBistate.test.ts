@@ -406,4 +406,46 @@ describe('createBistate', () => {
       remove(state.a)
     })
   })
+
+  it('should support structural sharing', () => {
+    let state = createBistate({
+      a: [{ value: 1 }, { value: 2 }, { value: 3 }],
+      b: [{ value: 1 }, { value: 2 }, { value: 3 }],
+      c: [{ value: 1 }, { value: 2 }, { value: 3 }]
+    })
+
+    let n = 0
+
+    watch(state, nextState => {
+      expect(n).toBe(0)
+      n += 1
+
+      expect(nextState).toEqual({
+        a: [{ value: 2 }, { value: 2 }, { value: 3 }],
+        b: [{ value: 1 }, { value: 2 }, { value: 4 }],
+        c: [{ value: 1 }, { value: 2 }, { value: 3 }],
+        d: [{ value: 1 }, { value: 2 }, { value: 3 }]
+      })
+
+      expect(state.c === nextState.c).toBe(true)
+
+      expect(state.a[1] === nextState.a[1]).toBe(true)
+      expect(state.a[2] === nextState.a[2]).toBe(true)
+
+      expect(state.b[0] === nextState.b[0]).toBe(true)
+      expect(state.b[1] === nextState.b[1]).toBe(true)
+
+      expect(state.c[0] === nextState.c[0]).toBe(true)
+      expect(state.c[1] === nextState.c[1]).toBe(true)
+      expect(state.c[2] === nextState.c[2]).toBe(true)
+    })
+
+    mutate(() => {
+      state.a[0].value += 1
+      state.b[2].value += 1
+      state.d = [{ value: 1 }, { value: 2 }, { value: 3 }]
+    })
+
+    expect(n).toBe(1)
+  })
 })
