@@ -5,7 +5,7 @@ export default function useMutate(callback) {
   let callbackRef = useRef(callback)
   let update = useCallback(
     (...args) => {
-      mutate(() => callbackRef.current(...args))
+      return mutate(() => callbackRef.current(...args))
     },
     [callbackRef]
   )

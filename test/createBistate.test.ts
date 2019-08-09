@@ -346,6 +346,39 @@ describe('createBistate', () => {
     expect(n).toBe(2)
   })
 
+  it('mutate function can return value', () => {
+    let state = createBistate({ count: 0 })
+
+    let n = mutate(() => {
+      state.count += 1
+      return state.count
+    })
+
+    expect(state.count).toBe(0)
+    expect(n).toBe(1)
+  })
+
+  it('mutate function can be nest', () => {
+    let state = createBistate({ count: 0 })
+    let i = 0
+
+    watch(state, nextState => {
+      expect(i).toBe(0)
+      expect(nextState)
+    })
+
+    let n = mutate(() => {
+      state.count += 1
+      return mutate(() => {
+        state.count += 1
+        return state.count
+      })
+    })
+
+    expect(state.count).toBe(0)
+    expect(n).toBe(2)
+  })
+
   it('can remove object property by remove function', () => {
     let state = createBistate({
       a: {

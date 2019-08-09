@@ -80,9 +80,9 @@ export const mutate = f => {
     if (isThenable(result)) {
       throw new Error(`mutate(f) don't support async function`)
     }
+    return result
   } finally {
-    if (previousFlag) return
-    release()
+    if (!previousFlag) release()
   }
 }
 
