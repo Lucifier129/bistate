@@ -1,4 +1,4 @@
-import createBistate, { watch, mutate } from './createBistate'
+import createBistate, { watch } from './createBistate'
 import { isFunction } from './util'
 
 export default function createStore(initialState) {
@@ -47,7 +47,7 @@ export default function createStore(initialState) {
       let listener = list[i]
 
       if (listenerList.includes(listener)) {
-        mutate(() => listener(current))
+        listener(current)
       }
     }
   }
