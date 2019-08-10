@@ -407,6 +407,32 @@ describe('createBistate', () => {
     })
   })
 
+  it('can remove list item by remove function', () => {
+    let state = createBistate([{ value: 1 }, { value: 2 }, { value: 3 }])
+    let n = 0
+
+    watch(state, nextState => {
+      expect(n).toBe(0)
+      n += 1
+      expect(nextState).toEqual([{ value: 1 }, { value: 3 }])
+      expect(state).toEqual([{ value: 1 }, { value: 2 }, { value: 3 }])
+      expect(state[0] === nextState[0]).toBe(true)
+      expect(state[2] === nextState[1]).toBe(true)
+    })
+
+    mutate(() => {
+      remove(state[1])
+    })
+
+    expect(n).toBe(1)
+  })
+
+  it('should throw error when remove target is not a bistate', () => {
+    expect(() => {
+      remove({})
+    }).toThrow()
+  })
+
   it('should support structural sharing', () => {
     let state = createBistate({
       a: [{ value: 1 }, { value: 2 }, { value: 3 }],
@@ -444,6 +470,219 @@ describe('createBistate', () => {
       state.a[0].value += 1
       state.b[2].value += 1
       state.d = [{ value: 1 }, { value: 2 }, { value: 3 }]
+    })
+
+    expect(n).toBe(1)
+  })
+
+  it('access state property should works correctly in mutate function', () => {
+    let state = createBistate([{ a: 1, b: 2 }, { a: 1, b: 1 }])
+    let n = 0
+
+    mutate(() => {
+      n += 1
+
+      expect(state.length).toBe(2)
+
+      state[0].a += 1
+
+      expect(state[0].a).toBe(2)
+
+      state.pop()
+
+      expect(state.length).toBe(1)
+
+      expect('a' in state[0]).toBe(true)
+
+      delete state[0].a
+
+      expect('a' in state[0]).toBe(false)
+
+      expect(Object.getOwnPropertyNames(state[0])).toEqual(['b'])
+
+      state[0].c = 1
+
+      expect(Object.getOwnPropertyNames(state[0])).toEqual(['b', 'c'])
+
+      expect(state[0].c).toBe(1)
+    })
+
+    expect('a' in state[0]).toBe(true)
+    expect('b' in state[0]).toBe(true)
+    expect('c' in state[0]).toBe(false)
+    expect(Object.getOwnPropertyNames(state[0])).toEqual(['a', 'b'])
+
+    expect(n).toBe(1)
+  })
+
+  it('should throw error when watcher is not a function', () => {
+    let state = createBistate({ count: 1 })
+
+    expect(() => {
+      watch(state, 1 as any)
+    }).toThrow()
+  })
+
+  it('should trigger watcher directly when state has been mutated', () => {
+    let state = createBistate({ count: 1 })
+    let n = 0
+
+    mutate(() => {
+      state.count += 1
+    })
+
+    watch(state, nextState => {
+      expect(n).toBe(0)
+      n += 1
+      expect(nextState).toEqual({ count: 2 })
+    })
+
+    expect(state).toEqual({ count: 1 })
+    expect(n).toBe(1)
+  })
+
+  it('should throw error when mutate a state(which has been watched) more than once', () => {
+    let state = createBistate({ count: 1 })
+
+    watch(state, nextState => {
+      expect(nextState).toEqual({ count: 2 })
+    })
+
+    mutate(() => {
+      state.count += 1
+    })
+
+    expect(() => {
+      mutate(() => {
+        state.count += 1
+      })
+    }).toThrow()
+  })
+
+  it('should throw error when watch a non-root state', () => {
+    let state = createBistate({ a: { value: 1 } })
+
+    expect(() => {
+      watch(state.a, () => {
+        // nothing
+      })
+    }).toThrow()
+  })
+
+  it('should throw error when mutate function got invalid arguments', () => {
+    mutate(() => {
+      // nothing
+    })
+
+    expect(() => {
+      mutate(1 as any)
+    }).toThrow()
+  })
+
+  it('should reuse object property correctly', () => {
+    let state = createBistate({
+      a: {
+        value: 1
+      },
+      b: {
+        value: 2
+      }
+    })
+    let n = 0
+
+    watch(state, nextState => {
+      expect(n).toBe(0)
+      n += 1
+
+      expect(state.a === nextState.b).toBe(true)
+      expect(state.b === nextState.a).toBe(true)
+
+      // should state when the value already existed
+      expect(state.a === nextState.c).toBe(false)
+
+      expect(nextState).toEqual({
+        a: {
+          value: 2
+        },
+        b: {
+          value: 1
+        },
+        c: {
+          value: 1
+        }
+      })
+    })
+
+    mutate(() => {
+      let { a, b } = state
+
+      state.a = b
+      state.b = a
+      state.c = a
+
+      expect(state.b === state.c).toEqual(true)
+    })
+
+    expect(n).toBe(1)
+  })
+
+  it('should reuse list item correctly', () => {
+    let state = createBistate([{ value: 1 }, { value: 2 }, { value: 3 }])
+    let n = 0
+
+    watch(state, nextState => {
+      expect(n).toBe(0)
+      n += 1
+
+      expect(nextState).toEqual([{ value: 3 }, { value: 1 }, { value: 2 }, { value: 3 }])
+      expect(state).toEqual([{ value: 1 }, { value: 2 }, { value: 3 }])
+
+      expect(nextState[0] === state[2]).toBe(true)
+      expect(nextState[1] === state[0]).toBe(true)
+      expect(nextState[2] === state[1]).toBe(true)
+
+      // should recreate state when the value already existed
+      expect(nextState[3] != state[2]).toBe(true)
+    })
+
+    mutate(() => {
+      let [a, b, c] = state
+
+      state[0] = c
+      state[1] = a
+      state[2] = b
+      state[3] = c
+    })
+
+    expect(n).toBe(1)
+  })
+
+  it('should only reuse state at the same layer', () => {
+    let state = createBistate({
+      a: { count: 0 },
+      b: {
+        value: { count: 1 }
+      }
+    })
+    let n = 0
+
+    watch(state, nextState => {
+      expect(n).toBe(0)
+      n += 1
+
+      expect(nextState).toEqual({
+        a: { count: 1 },
+        b: { value: { count: 0 } }
+      })
+
+      expect(nextState.b === state.a).toBe(false)
+      expect(nextState.a === state.b.value).toBe(false)
+    })
+
+    mutate(() => {
+      let a = state.a
+      state.a = state.b.value
+      state.b.value = a
     })
 
     expect(n).toBe(1)

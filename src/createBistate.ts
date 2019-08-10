@@ -13,7 +13,7 @@ type createBistate<T extends Source> = {
 const BISTATE = Symbol('BISTATE')
 export const isBistate = input => !!(input && input[BISTATE])
 
-const getBistateValue = (value, currentProxy, previousProxy) => {
+const getBistateValue = (value, currentProxy, previousProxy, currentTarget) => {
   if (previousProxy && isBistate(value)) {
     let parent = value[BISTATE].getParent()
 
@@ -36,7 +36,7 @@ const getBistateValue = (value, currentProxy, previousProxy) => {
 
 const fillObjectBistate = (currentProxy, initialObject, target, scapegoat, previousProxy) => {
   for (let key in initialObject) {
-    let value = getBistateValue(initialObject[key], currentProxy, previousProxy)
+    let value = getBistateValue(initialObject[key], currentProxy, previousProxy, target)
     scapegoat[key] = value
     target[key] = value
   }
@@ -44,7 +44,7 @@ const fillObjectBistate = (currentProxy, initialObject, target, scapegoat, previ
 
 const fileArrayBistate = (currentProxy, initialArray, target, scapegoat, previousProxy) => {
   for (let i = 0; i < initialArray.length; i++) {
-    let item = getBistateValue(initialArray[i], currentProxy, previousProxy)
+    let item = getBistateValue(initialArray[i], currentProxy, previousProxy, target)
     scapegoat[i] = item
     target[i] = item
   }
@@ -74,9 +74,9 @@ export const mutate = f => {
 
   isMutable = true
 
-  let result = f()
-
   try {
+    let result = f()
+
     if (isThenable(result)) {
       throw new Error(`mutate(f) don't support async function`)
     }
@@ -153,9 +153,12 @@ const createBistate = (initialState, previousProxy = null) => {
 
   let compute = () => {
     if (!isDirty) return currentProxy
+
+    isDirty = false
+
     /**
      * redo
-     * create nextProxy based on scapegoat and currentProxy
+     * create nextProxy based on scapegoat and target
      * reuse unchanged value as possible
      */
     let nextProxy = createBistate(scapegoat, currentProxy)

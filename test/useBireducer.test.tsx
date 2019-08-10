@@ -2,11 +2,9 @@ import 'jest'
 import React from 'react'
 import ReactDOM from 'react-dom'
 import { act } from 'react-dom/test-utils'
-import { useBireducer, useMutate } from '../src/react'
+import { useBireducer } from '../src/react'
 
 const delay = (timeout = 0) => new Promise(resolve => setTimeout(resolve, timeout))
-
-const noop = () => {}
 
 const createDeferred = () => {
   let resolve

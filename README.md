@@ -1,4 +1,4 @@
-# Welcome to bistate 👋 
+# Welcome to bistate 👋
 
 [![npm version](https://img.shields.io/npm/v/bistate.svg?style=flat)](https://www.npmjs.com/package/bistate)
 [![Build Status](https://travis-ci.org/Lucifier129/bistate.svg?branch=master)](https://travis-ci.org/Lucifier129/bistate)
@@ -9,13 +9,13 @@
 
 > mutate the current state to generate the next state and restore the current one to keep two state immutable
 
-**bistate** is a tiny package that allows you to work with immutable state in a more reactive way.
-
-**bistate** is a state management library for react inspired by vue 3.0 reactivity api and immer
+**bistate** is a tiny package that allows you to work with immutable state in a more reactive way, inspired by vue 3.0 reactivity api and immer.
 
 ### 🏠 [Homepage](https://github.com/Lucifier129/bistate#readme)
 
 ## Benefits
+
+bistate likes immer
 
 - Immutability with normal JavaScript objects and arrays. No new APIs to learn!
 - Strongly typed, no string based paths selectors etc.
@@ -23,7 +23,8 @@
 - Deep updates are a breeze
 - Boilerplate reduction. Less noise, more concise code.
 - Small script size
-- supports react-hooks api 
+- supports react-hooks api
+- mutate parent component's state in child component
 
 ## Environment Requirement
 
@@ -46,11 +47,38 @@ yarn add bistate
 
 ## Usage
 
-to be done
+### Counter
 
-## Caveat
+```javascript
+import React, { useEffect } from 'react'
+import { useBistate, useMutate } from 'bistate/react'
 
-- `createbistate(state)` only accept object or array as arguemnt
+export default function Counter() {
+  let [state] = useBistate({ count: 0 })
+
+  let incre = useMutate(() => {
+    state.count += 1
+  })
+
+  let decre = useMutate(() => {
+    state.count -= 1
+  })
+
+  useEffect(() => {
+    let timer = setInterval(incre, 1000)
+    return () => clearInterval(timer)
+  }, [])
+
+  return (
+    <div>
+      <button onClick={incre}>+1</button>
+      {state.count}
+      <button onClick={decre}>-1</button>
+    </div>
+  )
+}
+
+```
 
 ## Author
 
