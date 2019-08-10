@@ -39,8 +39,8 @@ Every immutable state is wrapped by a proxy, has a scapegoat state by the side.
 
 `immutable state` + `scapegoat state` = **bistate**
 
-- scapegoat has the same value as the immutable target
 - the immutable target is freezed by proxy
+- scapegoat has the same value as the immutable target
 - mutate(() => { **the_mutable_world** }), when calling `mutate(f)`, it will
   - switch all operations to scapegoat instead of the immutable target when executing
   - switch back to the immutable target after executed
@@ -102,7 +102,7 @@ function Todo({ todo }) {
   let edit = useBistate({ value: false })
   /**
    * bistate text is reactive
-   * we will pass the text down to TodoInput without given onChange or setText
+   * we will pass the text down to TodoInput without the need of manually update it in Todo
    * */
   let text = useBistate({ value: '' })
 
@@ -145,6 +145,17 @@ function Todo({ todo }) {
       {!edit.value && <span onClick={handleEdit}>{todo.content}</span>}
     </li>
   )
+}
+
+function TodoInput({ text, ...props }) {
+  let handleChange = useMutate(event => {
+    /**
+     * we just simply and safely mutate text at one place
+     * instead of every parent components need to handle `onChange` event
+     */
+    text.value = event.target.value
+  })
+  return <input type="text" {...props} onChange={handleChange} value={text.value} />
 }
 ```
 
