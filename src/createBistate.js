@@ -33,7 +33,7 @@ const fillObjectBistate = (currentProxy, initialObject, target, scapegoat, previ
   }
 }
 
-const fileArrayBistate = (currentProxy, initialArray, target, scapegoat, previousProxy) => {
+const fillArrayBistate = (currentProxy, initialArray, target, scapegoat, previousProxy) => {
   for (let i = 0; i < initialArray.length; i++) {
     let item = getBistateValue(initialArray[i], currentProxy, previousProxy)
     scapegoat[i] = item
@@ -88,8 +88,10 @@ const createBistate = (initialState, previousProxy = null) => {
   let consuming = false
   let watcher = null
   let watch = f => {
-    if (watcher) throw new Error(`bistate can be watched twice`)
+    if (watcher) throw new Error(`bistate can not be watched twice`)
+
     if (!scapegoat) throw new Error(`current state is immutable, can not be watched now`)
+
     if (parent) throw new Error(`Only root node can be watched`)
 
     watcher = f
@@ -212,7 +214,7 @@ const createBistate = (initialState, previousProxy = null) => {
   let currentProxy = new Proxy(target, handlers)
 
   if (isArray(currentProxy)) {
-    fileArrayBistate(currentProxy, initialState, target, scapegoat, previousProxy)
+    fillArrayBistate(currentProxy, initialState, target, scapegoat, previousProxy)
   } else {
     fillObjectBistate(currentProxy, initialState, target, scapegoat, previousProxy)
   }
