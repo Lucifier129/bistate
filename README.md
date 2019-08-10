@@ -254,6 +254,59 @@ remove the bistate from its parent
 
 check if input is a bistate or not
 
+## Caveats
+
+- only supports array and object, other data types are not allowed
+
+- bistate is unidirectional, any object or array appear only once, no circular references existed
+
+```javascript
+let state = useBistate([{ value: 1 }])
+
+mutate(() => {
+  state.push(state[0])
+  // nextState[0] is equal to state[0]
+  // nextState[1] is not equal to state[0], it's a new one
+})
+```
+
+- can not spread object or array as props, it will lose the reactivity connection in it, should pass the reference
+
+```javascript
+
+// don't do this
+<Todo {...todo} />
+
+// do this instead
+<Todo todo={todo} />
+```
+
+- can not edit state or props via react-devtools, the same problem as above
+
+- useMutate or mutate do not support async function
+
+```javascript
+const Test = () => {
+  let state = useBistate({ count: 0 })
+
+  // don't do this
+  let handleIncre = useMutate(async () => {
+    let n = await fetchData()
+    state.count += n
+  })
+
+  // do this instead
+  let incre = useMutate(n => {
+    state.count += n
+  })
+
+  let handleIncre = async () => {
+    let n = await fetchData()
+    incre(n)
+  }
+}
+```
+
 ## Author
 
 👤 **Jade Gu**
