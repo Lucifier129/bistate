@@ -33,7 +33,7 @@ describe('createStore', () => {
     let store = createStore({ count: 1 })
 
     expect(() => {
-      store.subscribe(1 as any)
+      store.subscribe(1)
     }).toThrow()
   })
 

@@ -1,19 +1,10 @@
 import { isFunction, isThenable, isArray, isObject } from './util'
 
-type Source = any[] | object
-
-type Watcher<T> = (state: T) => void
-type Unwatch = () => void
-
-type createBistate<T extends Source> = {
-  getState: () => T
-  watch: (watcher: Watcher<T>) => Unwatch
-}
-
 const BISTATE = Symbol('BISTATE')
+
 export const isBistate = input => !!(input && input[BISTATE])
 
-const getBistateValue = (value, currentProxy, previousProxy, currentTarget) => {
+const getBistateValue = (value, currentProxy, previousProxy) => {
   if (previousProxy && isBistate(value)) {
     let parent = value[BISTATE].getParent()
 
@@ -36,7 +27,7 @@ const getBistateValue = (value, currentProxy, previousProxy, currentTarget) => {
 
 const fillObjectBistate = (currentProxy, initialObject, target, scapegoat, previousProxy) => {
   for (let key in initialObject) {
-    let value = getBistateValue(initialObject[key], currentProxy, previousProxy, target)
+    let value = getBistateValue(initialObject[key], currentProxy, previousProxy)
     scapegoat[key] = value
     target[key] = value
   }
@@ -44,7 +35,7 @@ const fillObjectBistate = (currentProxy, initialObject, target, scapegoat, previ
 
 const fileArrayBistate = (currentProxy, initialArray, target, scapegoat, previousProxy) => {
   for (let i = 0; i < initialArray.length; i++) {
-    let item = getBistateValue(initialArray[i], currentProxy, previousProxy, target)
+    let item = getBistateValue(initialArray[i], currentProxy, previousProxy)
     scapegoat[i] = item
     target[i] = item
   }

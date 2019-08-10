@@ -1,8 +1,8 @@
 export const isArray = Array.isArray
 
-export const isFunction = (input: any) => typeof input === 'function'
+export const isFunction = input => typeof input === 'function'
 
-export const isObject = (input: any) => {
+export const isObject = input => {
   if (typeof input !== 'object' || input === null) return false
 
   let proto = input

@@ -4,19 +4,19 @@ import createBistate, { mutate, watch, remove, isBistate } from '../src/createBi
 describe('createBistate', () => {
   it('should throw error when createBistate got invalide arguments', () => {
     expect(() => {
-      createBistate(undefined as any)
+      createBistate(undefined)
     }).toThrow()
 
     expect(() => {
-      createBistate(1 as any)
+      createBistate(1)
     }).toThrow()
 
     expect(() => {
-      createBistate('123' as any)
+      createBistate('123')
     }).toThrow()
 
     expect(() => {
-      createBistate(null as any)
+      createBistate(null)
     }).toThrow()
 
     createBistate([])
@@ -283,7 +283,7 @@ describe('createBistate', () => {
     }).toThrow()
 
     expect(() => {
-      watch(createBistate({}), 1 as any)
+      watch(createBistate({}), 1)
     })
   })
 
@@ -519,7 +519,7 @@ describe('createBistate', () => {
     let state = createBistate({ count: 1 })
 
     expect(() => {
-      watch(state, 1 as any)
+      watch(state, 1)
     }).toThrow()
   })
 
@@ -575,7 +575,7 @@ describe('createBistate', () => {
     })
 
     expect(() => {
-      mutate(1 as any)
+      mutate(1)
     }).toThrow()
   })
 
