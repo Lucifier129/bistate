@@ -1,8 +1,9 @@
 import { useMemo, useState, useLayoutEffect } from 'react'
+import { isBistate } from '../createBistate'
 import createStore from '../createStore'
 import { isFunction } from '../util'
 
-export default function useBistate(initialState) {
+export default function useBistate(initialState, currentState) {
   let store = useMemo(() => {
     if (isFunction(initialState)) {
       initialState = initialState()
@@ -14,5 +15,5 @@ export default function useBistate(initialState) {
 
   useLayoutEffect(() => store.subscribe(setState), [store])
 
-  return state
+  return isBistate(currentState) ? currentState : state
 }

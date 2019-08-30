@@ -6,8 +6,6 @@ import { useBistate, useMutate } from '../src/react'
 
 const delay = (timeout = 0) => new Promise(resolve => setTimeout(resolve, timeout))
 
-const noop = () => {}
-
 const createDeferred = () => {
   let resolve
   let reject
@@ -149,5 +147,53 @@ describe('useBistate', () => {
     })
 
     expect(div.textContent).toBe('4')
+  })
+
+  it('can switch bistate', () => {
+    let Child = props => {
+      let state = useBistate({ count: 0 }, props.counter)
+
+      let handleClick = useMutate(() => {
+        state.count += 1
+      })
+
+      return <div onClick={handleClick}>{state.count}</div>
+    }
+
+    let Parent = () => {
+      let state = useBistate({ count: 10 })
+
+      return (
+        <>
+          <Child />
+          <Child counter={state} />
+        </>
+      )
+    }
+
+    act(() => {
+      ReactDOM.render(<Parent />, container)
+    })
+
+    let divs = container.querySelectorAll('div')
+
+    expect(divs[0].textContent).toBe('0')
+    expect(divs[1].textContent).toBe('10')
+
+    act(() => {
+      divs[0].dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      divs[1].dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(divs[0].textContent).toBe('1')
+    expect(divs[1].textContent).toBe('11')
+
+    act(() => {
+      divs[0].dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      divs[1].dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(divs[0].textContent).toBe('2')
+    expect(divs[1].textContent).toBe('12')
   })
 })
