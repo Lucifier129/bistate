@@ -304,6 +304,42 @@ const Test = () => {
     let n = await fetchData()
     incre(n)
   }
+
+  return <div onClick={handleIncre}>test</div>
+}
+```
+
+- can not mutate state twice in event-handler which is not async
+
+Why? Because every state can only be mutated once, and React will batching setState in event-handler.
+
+So call mutate function twice will mutate the state twice too.
+
+In async mode, react batching not work, call mutate function twice will mutate difference state.
+
+if you really want to call mutate function twice, wrap the event-handler via `useMutate`.
+
+```javascript
+const Test = () => {
+  let state = useBistate({ count: 0 })
+
+  let incre = useMutate(n => {
+    state.count += n
+  })
+
+  // don't do this
+  let handleIncre = () => {
+    incre(1)
+    incre(1)
+  }
+
+  // do this
+  let handleIncre = useMutate(() => {
+    incre(1)
+    incre(1)
+  })
+
+  return <div onClick={handleIncre}>test</div>
 }
 ```
 
