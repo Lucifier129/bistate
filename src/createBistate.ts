@@ -1,5 +1,25 @@
 import { isFunction, isThenable, isArray, isObject } from './util'
 
+/** Object types that should never be mapped */
+type AtomicObject =
+  | Function
+  | Map<any, any>
+  | WeakMap<any, any>
+  | Set<any>
+  | WeakSet<any>
+  | Promise<any>
+  | Date
+  | RegExp
+  | Boolean
+  | Number
+  | String
+
+export type Bistate<T> = T extends AtomicObject
+  ? T
+  : T extends object
+  ? { -readonly [K in keyof T]: Bistate<T[K]> }
+  : T
+
 const BISTATE = Symbol('BISTATE')
 
 export const isBistate = input => !!(input && input[BISTATE])
@@ -56,7 +76,7 @@ const release = () => {
   }
 }
 
-export const mutate = f => {
+export const mutate = <T extends () => any>(f: T): ReturnType<T> => {
   if (!isFunction(f)) {
     throw new Error(`Expected f in mutate(f) is a function, but got ${f} `)
   }
@@ -77,13 +97,16 @@ export const mutate = f => {
   }
 }
 
-const createBistate = (initialState, previousProxy = null) => {
+const createBistate = <State extends object>(
+  initialState: State,
+  previousProxy = null
+): Bistate<State> => {
   if (!isArray(initialState) && !isObject(initialState)) {
     throw new Error(`Expected initialState to be array or plain object, but got ${initialState}`)
   }
 
-  let scapegoat = isArray(initialState) ? [] : {}
-  let target = isArray(initialState) ? [] : {}
+  let scapegoat = isArray(initialState) ? [] : ({} as State)
+  let target = isArray(initialState) ? [] : ({} as State)
 
   let consuming = false
   let watcher = null
@@ -211,7 +234,7 @@ const createBistate = (initialState, previousProxy = null) => {
     }
   }
 
-  let currentProxy = new Proxy(target, handlers)
+  let currentProxy = new Proxy(target, handlers) as Bistate<State>
 
   if (isArray(currentProxy)) {
     fillArrayBistate(currentProxy, initialState, target, scapegoat, previousProxy)
@@ -227,11 +250,14 @@ const createBistate = (initialState, previousProxy = null) => {
   return currentProxy
 }
 
-export default function(initialState) {
+export default function<State extends object>(initialState: State) {
   return createBistate(initialState, null)
 }
 
-export const watch = (state, watcher) => {
+type Unwatch = () => void
+type Watcher<T> = (state: T) => any
+
+export const watch = <T extends Bistate<any>>(state: T, watcher: Watcher<T>): Unwatch => {
   if (!isBistate(state)) {
     throw new Error(`Expected state to be a bistate, but received ${state}`)
   }
@@ -243,19 +269,19 @@ export const watch = (state, watcher) => {
   return state[BISTATE].watch(watcher)
 }
 
-export const remove = state => {
+export const remove = <T extends Bistate<any>>(state: T) => {
   if (!isBistate(state)) {
     throw new Error(`Expected state to be a bistate, but received ${state}`)
   }
 
   let parent = state[BISTATE].getParent()
 
-  if (!parent) return
+  if (!parent) return false
 
   if (isArray(parent)) {
     let index = parent.indexOf(state)
     parent.splice(index, 1)
-    return
+    return true
   }
 
   if (isObject(parent)) {
@@ -263,8 +289,10 @@ export const remove = state => {
       let value = parent[key]
       if (value === state) {
         delete parent[key]
-        return
+        return true
       }
     }
   }
+
+  return false
 }

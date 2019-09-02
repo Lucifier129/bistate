@@ -1,12 +1,12 @@
 import { useRef, useLayoutEffect, useCallback } from 'react'
 import { mutate } from '../createBistate'
 
-export default function useMutate(callback) {
+export default function useMutate<T extends (...args) => any>(callback: T) {
   let callbackRef = useRef(callback)
   let update = useCallback(
-    (...args) => {
+    ((...args) => {
       return mutate(() => callbackRef.current(...args))
-    },
+    }) as T,
     [callbackRef]
   )
 

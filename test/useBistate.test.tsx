@@ -32,7 +32,7 @@ describe('useBistate', () => {
   })
 
   it('basic usage', () => {
-    let Test = props => {
+    let Test = (props: { count?: number }) => {
       let state = useBistate({ count: props.count || 0 })
 
       let incre = useMutate(() => {
@@ -69,7 +69,7 @@ describe('useBistate', () => {
       deferred.resolve()
       deferred = createDeferred()
     }
-    let Test = props => {
+    let Test = (props: { count?: number }) => {
       let state = useBistate({ count: props.count || 0 })
 
       let incre = useMutate(() => {
@@ -93,6 +93,7 @@ describe('useBistate', () => {
 
     expect(button.textContent).toBe('0')
 
+    // tslint:disable-next-line: await-promise
     await act(async () => {
       button.dispatchEvent(new MouseEvent('click', { bubbles: true }))
       await deferred.promise
@@ -100,6 +101,7 @@ describe('useBistate', () => {
 
     expect(button.textContent).toBe('1')
 
+    // tslint:disable-next-line: await-promise
     await act(async () => {
       button.dispatchEvent(new MouseEvent('click', { bubbles: true }))
       await deferred.promise

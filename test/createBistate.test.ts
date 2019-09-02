@@ -8,11 +8,11 @@ describe('createBistate', () => {
     }).toThrow()
 
     expect(() => {
-      createBistate(1)
+      createBistate(1 as any)
     }).toThrow()
 
     expect(() => {
-      createBistate('123')
+      createBistate('123' as any)
     }).toThrow()
 
     expect(() => {
@@ -100,6 +100,11 @@ describe('createBistate', () => {
       a: 1,
       b: 2,
       c: 3
+    } as {
+      a: number
+      b: number
+      c: number
+      d?: number
     })
     let n = 0
 
@@ -210,12 +215,14 @@ describe('createBistate', () => {
 
   it('should throw error when mutate(f) got async function or return promise', () => {
     expect(() => {
+      // tslint:disable-next-line: no-floating-promises
       mutate(async () => {
         //
       })
     }).toThrow()
 
     expect(() => {
+      // tslint:disable-next-line: no-floating-promises
       mutate(() => {
         return Promise.resolve()
       })
@@ -283,7 +290,7 @@ describe('createBistate', () => {
     }).toThrow()
 
     expect(() => {
-      watch(createBistate({}), 1)
+      watch(createBistate({}), 1 as any)
     })
   })
 
@@ -438,6 +445,11 @@ describe('createBistate', () => {
       a: [{ value: 1 }, { value: 2 }, { value: 3 }],
       b: [{ value: 1 }, { value: 2 }, { value: 3 }],
       c: [{ value: 1 }, { value: 2 }, { value: 3 }]
+    } as {
+      a: { value: number }[]
+      b: { value: number }[]
+      c: { value: number }[]
+      d?: { value: number }[]
     })
 
     let n = 0
@@ -476,7 +488,11 @@ describe('createBistate', () => {
   })
 
   it('access state property should works correctly in mutate function', () => {
-    let state = createBistate([{ a: 1, b: 2 }, { a: 1, b: 1 }])
+    let state = createBistate([{ a: 1, b: 2 }, { a: 1, b: 1 }] as {
+      a: number
+      b: number
+      c?: number
+    }[])
     let n = 0
 
     mutate(() => {
@@ -519,7 +535,7 @@ describe('createBistate', () => {
     let state = createBistate({ count: 1 })
 
     expect(() => {
-      watch(state, 1)
+      watch(state, 1 as any)
     }).toThrow()
   })
 
@@ -575,7 +591,7 @@ describe('createBistate', () => {
     })
 
     expect(() => {
-      mutate(1)
+      mutate(1 as any)
     }).toThrow()
   })
 
@@ -586,6 +602,16 @@ describe('createBistate', () => {
       },
       b: {
         value: 2
+      }
+    } as {
+      a: {
+        value: number
+      }
+      b: {
+        value: number
+      }
+      c?: {
+        value: number
       }
     })
     let n = 0
@@ -642,7 +668,7 @@ describe('createBistate', () => {
       expect(nextState[2] === state[1]).toBe(true)
 
       // should recreate state when the value already existed
-      expect(nextState[3] != state[2]).toBe(true)
+      expect(nextState[3] !== state[2]).toBe(true)
     })
 
     mutate(() => {
@@ -675,7 +701,6 @@ describe('createBistate', () => {
         b: { value: { count: 0 } }
       })
 
-      expect(nextState.b === state.a).toBe(false)
       expect(nextState.a === state.b.value).toBe(false)
     })
 

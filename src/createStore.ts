@@ -1,14 +1,16 @@
-import createBistate, { watch } from './createBistate'
+import createBistate, { watch, Bistate } from './createBistate'
 import { isFunction } from './util'
 
-export default function createStore(initialState) {
+export default function createStore<T extends object>(initialState: T) {
   let current = createBistate(initialState)
 
   let getState = () => current
 
   let listenerList = []
 
-  let subscribe = listener => {
+  type Listener = (state: Bistate<T>) => any
+
+  let subscribe = (listener: Listener) => {
     if (!isFunction(listener)) {
       throw new Error(`Expected listener to be a function, but got ${listener}`)
     }
