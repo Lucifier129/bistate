@@ -166,9 +166,29 @@ import { createStore, mutate, remove, isBistate } from 'bistate'
 import { useBistate, useMutate, useBireducer } from 'bistate/react'
 ```
 
-### useBistate(array | object) -> bistate
+### useBistate(array | object, bistate?) -> bistate
 
-receive an array or an object, return bistate
+receive an array or an object, return bistate.
+
+if the second argument is another bistate which has the same shape with the first argument, return the second argument instead.
+
+```javascript
+let Child = (props: { counter?: { count: number } }) => {
+  // if props.counter is existed, use props.counter, otherwise use local bistate.
+  let state = useBistate({ count: 0 }, props.counter)
+
+  let handleClick = useMutate(() => {
+    state.count += 1
+  })
+
+  return <div onClick={handleClick}>{state.count}</div>
+}
+
+// use local bistate
+<Child />
+// use parent bistate
+<Child counter={state} />
+```
 
 ### useMutate((...args) => any_value) -> ((...args) => any_value)
 
