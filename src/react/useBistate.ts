@@ -1,5 +1,5 @@
-import { useMemo, useState, useLayoutEffect } from 'react'
-import { Bistate, isBistate } from '../createBistate'
+import { useMemo, useState, useCallback } from 'react'
+import { Bistate, isBistate, lock, unlock } from '../createBistate'
 import createStore from '../createStore'
 import { isFunction } from '../util'
 
@@ -14,9 +14,21 @@ export default function useBistate<T extends object>(
     return createStore(initialState as T)
   }, [])
 
-  let [state, setState] = useState(store.getState())
+  let update = useUpdate()
 
-  useLayoutEffect(() => store.subscribe(setState), [store])
+  // commit change to get next state if state has been mutated
+  unlock(store.getState())
+
+  let state = store.getState()
+
+  // lock state, and trigger update when mutate state
+  lock(state, update)
 
   return isBistate(currentState) ? currentState : state
+}
+
+const useUpdate = () => {
+  let [_, setState] = useState(0)
+  let update = useCallback(() => setState(count => count + 1), [])
+  return update
 }

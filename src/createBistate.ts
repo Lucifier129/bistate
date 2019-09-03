@@ -25,20 +25,33 @@ const BISTATE = Symbol('BISTATE')
 export const isBistate = input => !!(input && input[BISTATE])
 
 const getBistateValue = (value, currentProxy, previousProxy) => {
-  if (previousProxy && isBistate(value)) {
-    let parent = value[BISTATE].getParent()
+  let status = ''
+  /**
+   * if previousProxy exists, it is in reusing phase
+   * otherwise is in initializing phase
+   */
+  if (previousProxy) {
+    if (isBistate(value)) {
+      let parent = value[BISTATE].getParent()
 
-    // reuse bistate
-    if (parent === previousProxy) {
-      value = value[BISTATE].compute()
-    } else {
-      value = createBistate(value)
+      // reuse bistate
+      if (parent === previousProxy) {
+        status = 'reuse'
+      } else {
+        status = 'create'
+      }
+    } else if (isArray(value) || isObject(value)) {
+      status = 'create'
     }
   } else if (isArray(value) || isObject(value)) {
-    value = createBistate(value)
+    status = 'create'
   }
 
-  if (isBistate(value)) {
+  if (status === 'reuse') {
+    value = value[BISTATE].compute()
+    value[BISTATE].setParent(currentProxy)
+  } else if (status === 'create') {
+    value = createBistate(value)
     value[BISTATE].setParent(currentProxy)
   }
 
@@ -64,7 +77,7 @@ const fillArrayBistate = (currentProxy, initialArray, target, scapegoat, previou
 let isMutable = false
 let dirtyStateList = []
 
-const release = () => {
+const commit = () => {
   let list = dirtyStateList
 
   isMutable = false
@@ -81,6 +94,10 @@ export const mutate = <T extends () => any>(f: T): ReturnType<T> => {
     throw new Error(`Expected f in mutate(f) is a function, but got ${f} `)
   }
 
+  if (f[Symbol.toStringTag] === 'AsyncFunction') {
+    throw new Error(`mutate(f) don't support async function`)
+  }
+
   let previousFlag = isMutable
 
   isMutable = true
@@ -93,7 +110,7 @@ export const mutate = <T extends () => any>(f: T): ReturnType<T> => {
     }
     return result
   } finally {
-    if (!previousFlag) release()
+    if (!previousFlag) commit()
   }
 }
 
@@ -156,8 +173,24 @@ const createBistate = <State extends object>(
     }
   }
 
+  let isLock = false
+  let onLock = null
+  let lock = f => {
+    isLock = true
+    onLock = f
+  }
+  let unlock = () => {
+    isLock = false
+    onLock = null
+    if (isDirty) trigger()
+  }
   let trigger = () => {
-    if (!watcher) return
+    if (!watcher || isLock) {
+      if (isLock && isFunction(onLock)) {
+        onLock()
+      }
+      return
+    }
 
     let f = watcher
     let nextProxy = compute()
@@ -188,7 +221,17 @@ const createBistate = <State extends object>(
     return nextProxy
   }
 
-  let internal = { watch, setParent, getParent, deleteParent, notify, compute, trigger }
+  let internal = {
+    watch,
+    setParent,
+    getParent,
+    deleteParent,
+    notify,
+    compute,
+    trigger,
+    lock,
+    unlock
+  }
 
   let handlers = {
     get: (target, key) => {
@@ -267,6 +310,22 @@ export const watch = <T extends Bistate<any>>(state: T, watcher: Watcher<T>): Un
   }
 
   return state[BISTATE].watch(watcher)
+}
+
+export const lock = <T extends Bistate<any>>(state: T, f?: Function): T => {
+  if (!isBistate(state)) {
+    throw new Error(`Expected state to be a bistate, but received ${state}`)
+  }
+  state[BISTATE].lock(f)
+  return state
+}
+
+export const unlock = <T extends Bistate<any>>(state: T): T => {
+  if (!isBistate(state)) {
+    throw new Error(`Expected state to be a bistate, but received ${state}`)
+  }
+  state[BISTATE].unlock()
+  return state
 }
 
 export const remove = <T extends Bistate<any>>(state: T) => {

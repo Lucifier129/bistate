@@ -1,5 +1,5 @@
 import 'jest'
-import React from 'react'
+import React, { useEffect } from 'react'
 import ReactDOM from 'react-dom'
 import { act } from 'react-dom/test-utils'
 import { useBistate, useMutate } from '../src/react'
@@ -197,5 +197,57 @@ describe('useBistate', () => {
 
     expect(divs[0].textContent).toBe('2')
     expect(divs[1].textContent).toBe('12')
+  })
+
+  it('can mutate state in useEffect', () => {
+    let Child = ({ data }) => {
+      let incre = useMutate(() => {
+        data.count += 1
+      })
+
+      useEffect(() => {
+        incre()
+      }, [])
+
+      return (
+        <div id="child" onClick={incre}>
+          {data.count}
+        </div>
+      )
+    }
+
+    let Parent = () => {
+      let state = useBistate({ count: 0 })
+
+      let incre = useMutate(() => {
+        state.count += 1
+      })
+
+      useEffect(() => {
+        incre()
+      }, [])
+
+      return <Child data={state}></Child>
+    }
+
+    act(() => {
+      ReactDOM.render(<Parent />, container)
+    })
+
+    let div = container.querySelector('#child')
+
+    expect(div.textContent).toBe('2')
+
+    act(() => {
+      div.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(div.textContent).toBe('3')
+
+    act(() => {
+      div.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(div.textContent).toBe('4')
   })
 })

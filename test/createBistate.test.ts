@@ -1,5 +1,5 @@
 import 'jest'
-import createBistate, { mutate, watch, remove, isBistate } from '../src/createBistate'
+import createBistate, { mutate, watch, remove, isBistate, lock, unlock } from '../src/createBistate'
 
 describe('createBistate', () => {
   it('should throw error when createBistate got invalide arguments', () => {
@@ -709,6 +709,41 @@ describe('createBistate', () => {
       state.a = state.b.value
       state.b.value = a
     })
+
+    expect(n).toBe(1)
+  })
+
+  it('can lock and unlock state', () => {
+    let state = createBistate({ count: 1 })
+    let n = 0
+
+    lock(state)
+
+    watch(state, nextState => {
+      expect(n).toBe(0)
+      n += 1
+      expect(nextState).toEqual({
+        count: 3
+      })
+    })
+
+    mutate(() => {
+      expect(state).toEqual({ count: 1 })
+      state.count += 1
+    })
+
+    expect(state).toEqual({ count: 1 })
+
+    mutate(() => {
+      expect(state).toEqual({ count: 2 })
+      state.count += 1
+    })
+
+    expect(state).toEqual({ count: 1 })
+
+    unlock(state)
+
+    expect(state).toEqual({ count: 1 })
 
     expect(n).toBe(1)
   })
