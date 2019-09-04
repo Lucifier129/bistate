@@ -1,7 +1,8 @@
-import { useMemo, useState, useCallback } from 'react'
+import { useMemo } from 'react'
 import { Bistate, isBistate, lock, unlock } from '../createBistate'
 import createStore from '../createStore'
 import { isFunction } from '../util'
+import useUpdate from './useUpdate'
 
 export default function useBistate<T extends object>(
   initialState: T | (() => T),
@@ -25,10 +26,4 @@ export default function useBistate<T extends object>(
   lock(state, update)
 
   return isBistate(currentState) ? currentState : state
-}
-
-const useUpdate = () => {
-  let [_, setState] = useState(0)
-  let update = useCallback(() => setState(count => count + 1), [])
-  return update
 }

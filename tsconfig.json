@@ -7,13 +7,14 @@
     "jsx": "react",
     "strict": false,
     "sourceMap": true,
+    "declaration": true,
     "esModuleInterop": true,
     "downlevelIteration": true,
     "allowSyntheticDefaultImports": true,
-    "allowJs": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "resolveJsonModule": true,
+    "declarationDir": "dist/types",
     "outDir": "dist/lib",
     "typeRoots": [
       "node_modules/@types"

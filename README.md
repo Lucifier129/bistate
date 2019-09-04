@@ -162,8 +162,8 @@ function TodoInput({ text, ...props }) {
 ## API
 
 ```javascript
-import { createStore, mutate, remove, isBistate } from 'bistate'
-import { useBistate, useMutate, useBireducer } from 'bistate/react'
+import { createStore, mutate, remove, isBistate, debug, undebug } from 'bistate'
+import { useBistate, useMutate, useBireducer, view, useAttr, useAttrs } from 'bistate/react'
 ```
 
 ### useBistate(array | object, bistate?) -> bistate
@@ -231,6 +231,60 @@ const Test = () => {
 }
 ```
 
+### view(FC) -> FC
+
+create a two-way data binding function-component
+
+```javascript
+
+const Counter = view(props => {
+  // Counter will not know the count is local or came from the parent
+  let count = useAttr('count', { value: 0 })
+
+  let handleClick = useMutate(() => {
+    count.value += 1
+  })
+
+  return <button onClick={handleClick}>{count.value}</button>
+})
+
+// use local bistate
+<Counter />
+
+// create a two-way data binding connection with parent bistate
+<Count count={parentBistate.count} />
+```
+
+### useAttrs(initValue) -> Record<string, bistate>
+
+create a record of bistate, when the value in props[key] is bistate, connect it.
+
+useAttrs must use in view(fc)
+
+```javascript
+
+const Test = view(() => {
+  // Counter will not know the count is local or came from the parent
+  let attrs = useAttrs({ count: { value: 0 } })
+
+  let handleClick = useMutate(() => {
+    attrs.count.value += 1
+  })
+
+  return <button onClick={handleClick}>{attrs.count.value}</button>
+})
+
+// use local bistate
+<Counter />
+
+// create a two-way data binding connection with parent bistate
+<Count count={parentBistate.count} />
+```
+
+### useAttr(key, initValue) -> bistate
+
+a shortcut of `useAttrs({ [key]: initValue })[key]`, it's useful when we want to separate attrs
+
 ### createStore(initialState) -> { subscribe, getState }
 
 create a store with an initial state
@@ -273,6 +327,14 @@ remove the bistate from its parent
 ### isBistate(input) -> boolean
 
 check if input is a bistate or not
+
+### debug(bistate) -> void
+
+enable debug mode, break point when bistate is mutating
+
+### undebug(bistate) -> void
+
+disable debug mode
 
 ## Caveats
 

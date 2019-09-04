@@ -30,9 +30,9 @@ describe('useBireducer', () => {
   })
 
   it('basic usage', () => {
-    let Test = props => {
+    let Test = (props: { count?: number }) => {
       let [state, dispatch] = useBireducer(
-        (state, action) => {
+        (state, action: { type: string }) => {
           if (action.type === 'incre') {
             state.count += 1
           }
@@ -101,6 +101,7 @@ describe('useBireducer', () => {
 
     expect(button.textContent).toBe('0')
 
+    // tslint:disable-next-line: await-promise
     await act(async () => {
       button.dispatchEvent(new MouseEvent('click', { bubbles: true }))
       await deferred.promise
@@ -108,6 +109,7 @@ describe('useBireducer', () => {
 
     expect(button.textContent).toBe('1')
 
+    // tslint:disable-next-line: await-promise
     await act(async () => {
       button.dispatchEvent(new MouseEvent('click', { bubbles: true }))
       await deferred.promise

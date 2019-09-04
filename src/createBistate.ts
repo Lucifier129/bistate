@@ -14,7 +14,7 @@ type AtomicObject =
   | Number
   | String
 
-export type Bistate<T> = T extends AtomicObject
+export type Bistate<T = object> = T extends AtomicObject
   ? T
   : T extends object
   ? { -readonly [K in keyof T]: Bistate<T[K]> }
@@ -160,6 +160,14 @@ const createBistate = <State extends object>(
     parent = null
   }
 
+  let isDebug = false
+  let debug = () => {
+    isDebug = true
+  }
+  let undebug = () => {
+    isDebug = false
+  }
+
   let isDirty = false
   let notify = () => {
     isDirty = true
@@ -216,6 +224,7 @@ const createBistate = <State extends object>(
      * clear scapegoat to keep currentProxy as immutable
      */
     scapegoat = null
+    onLock = null
     deleteParent()
     unwatch()
     return nextProxy
@@ -230,7 +239,9 @@ const createBistate = <State extends object>(
     compute,
     trigger,
     lock,
-    unlock
+    unlock,
+    debug,
+    undebug
   }
 
   let handlers = {
@@ -246,6 +257,7 @@ const createBistate = <State extends object>(
     set: (_, key, value) => {
       if (isMutable && scapegoat) {
         let result = Reflect.set(scapegoat, key, value)
+        if (isDebug) debugger
         notify()
         return result
       } else {
@@ -255,6 +267,7 @@ const createBistate = <State extends object>(
     deleteProperty: (_, key) => {
       if (isMutable && scapegoat) {
         let result = Reflect.deleteProperty(scapegoat, key)
+        if (isDebug) debugger
         notify()
         return result
       } else {
@@ -312,20 +325,32 @@ export const watch = <T extends Bistate<any>>(state: T, watcher: Watcher<T>): Un
   return state[BISTATE].watch(watcher)
 }
 
-export const lock = <T extends Bistate<any>>(state: T, f?: Function): T => {
+export const lock = <T extends Bistate<any>>(state: T, f?: Function) => {
   if (!isBistate(state)) {
     throw new Error(`Expected state to be a bistate, but received ${state}`)
   }
   state[BISTATE].lock(f)
-  return state
 }
 
-export const unlock = <T extends Bistate<any>>(state: T): T => {
+export const unlock = <T extends Bistate<any>>(state: T) => {
   if (!isBistate(state)) {
     throw new Error(`Expected state to be a bistate, but received ${state}`)
   }
   state[BISTATE].unlock()
-  return state
+}
+
+export const debug = <T extends Bistate<any>>(state: T) => {
+  if (!isBistate(state)) {
+    throw new Error(`Expected state to be a bistate, but received ${state}`)
+  }
+  state[BISTATE].debug()
+}
+
+export const undebug = <T extends Bistate<any>>(state: T) => {
+  if (!isBistate(state)) {
+    throw new Error(`Expected state to be a bistate, but received ${state}`)
+  }
+  state[BISTATE].undebug()
 }
 
 export const remove = <T extends Bistate<any>>(state: T) => {
