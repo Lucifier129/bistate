@@ -250,4 +250,42 @@ describe('useBistate', () => {
 
     expect(div.textContent).toBe('4')
   })
+
+  it('can call mutate function many time in event-handler', () => {
+    let Test = (props: { count?: number }) => {
+      let state = useBistate({ count: props.count || 0 })
+
+      let incre = useMutate(() => {
+        state.count += 1
+      })
+
+      let handleClick = () => {
+        incre()
+        incre()
+        incre()
+      }
+
+      return <button onClick={handleClick}>{state.count}</button>
+    }
+
+    act(() => {
+      ReactDOM.render(<Test />, container)
+    })
+
+    let button = container.querySelector('button')
+
+    expect(button.textContent).toBe('0')
+
+    act(() => {
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(button.textContent).toBe('3')
+
+    act(() => {
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(button.textContent).toBe('6')
+  })
 })
