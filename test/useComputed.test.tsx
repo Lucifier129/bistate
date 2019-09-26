@@ -1,8 +1,9 @@
 import 'jest'
-import React, { useEffect } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import ReactDOM from 'react-dom'
 import { act } from 'react-dom/test-utils'
 import { useBistate, useMutate, useComputed } from '../src/react'
+import { isBistate } from '../src'
 
 const delay = (timeout = 0) => new Promise(resolve => setTimeout(resolve, timeout))
 
@@ -34,10 +35,16 @@ describe('useComputed', () => {
     let Test = (props: { count?: number }) => {
       let original = useBistate({ count: props.count || 0, unchanged: 0 })
 
-      let computed = useComputed({
-        get: () => original.count + 1,
-        set: count => (original.count = count - 1)
-      })
+      let computed = useMemo(() => {
+        return {
+          get value() {
+            return original.count + 1
+          },
+          set value(count) {
+            original.count = count - 1
+          }
+        }
+      }, [original.count])
 
       let increOriginal = useMutate(() => {
         original.count += 1
@@ -52,10 +59,13 @@ describe('useComputed', () => {
         increComputed()
       }
 
-      let unchanged = useComputed({
-        get: () => original.unchanged,
-        set: n => (original.unchanged = n)
-      })
+      let unchanged = useComputed(
+        {
+          get: () => ({ value: original.unchanged }),
+          set: ({ value }) => (original.unchanged = value)
+        },
+        [original.unchanged]
+      )
 
       let increUnchanged = useMutate(() => {
         unchanged.value += 1

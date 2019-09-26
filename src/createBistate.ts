@@ -24,6 +24,17 @@ const BISTATE = Symbol('BISTATE')
 
 export const isBistate = input => !!(input && input[BISTATE])
 
+let isMix = false
+
+export const mixing = <F extends () => any>(f: F): ReturnType<F> => {
+  try {
+    isMix = true
+    return f()
+  } finally {
+    isMix = false
+  }
+}
+
 const getBistateValue = (value, currentProxy, previousProxy) => {
   let status = ''
   /**
@@ -44,7 +55,9 @@ const getBistateValue = (value, currentProxy, previousProxy) => {
       status = 'create'
     }
   } else if (isArray(value) || isObject(value)) {
-    status = 'create'
+    if (!(isMix && isBistate(value))) {
+      status = 'create'
+    }
   }
 
   if (status === 'reuse') {
@@ -74,7 +87,7 @@ const fillArrayBistate = (currentProxy, initialArray, target, scapegoat, previou
   }
 }
 
-let isMutable = false
+export let isMutable = false
 let dirtyStateList = []
 
 const commit = () => {
@@ -172,7 +185,7 @@ const createBistate = <State extends object>(
   let notify = () => {
     isDirty = true
 
-    if (consuming && !dirtyStateList.includes(currentProxy)) {
+    if (!dirtyStateList.includes(currentProxy)) {
       dirtyStateList.push(currentProxy)
     }
 
