@@ -35,16 +35,17 @@ describe('useComputed', () => {
     let Test = (props: { count?: number }) => {
       let original = useBistate({ count: props.count || 0, unchanged: 0 })
 
-      let computed = useMemo(() => {
-        return {
+      let computed = useComputed(
+        {
           get value() {
             return original.count + 1
           },
           set value(count) {
             original.count = count - 1
           }
-        }
-      }, [original.count])
+        },
+        [original.count]
+      )
 
       let increOriginal = useMutate(() => {
         original.count += 1
@@ -61,8 +62,12 @@ describe('useComputed', () => {
 
       let unchanged = useComputed(
         {
-          get: () => ({ value: original.unchanged }),
-          set: ({ value }) => (original.unchanged = value)
+          get value() {
+            return original.unchanged
+          },
+          set value(value) {
+            original.unchanged = value
+          }
         },
         [original.unchanged]
       )

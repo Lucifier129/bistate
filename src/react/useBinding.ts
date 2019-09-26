@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import useStaticFunction from './useStaticFunction'
+import useComputed from './useComputed'
 
 type BindingState<S extends object> = {
   [key in keyof S]: {
@@ -8,17 +8,17 @@ type BindingState<S extends object> = {
 }
 
 const binding = <S extends object>(state: S, key: keyof S) => {
-  let setter = useStaticFunction(value => (state[key] = value))
-  return useMemo(() => {
-    return {
+  return useComputed(
+    {
       get value() {
         return state[key]
       },
       set value(value) {
-        setter(value)
+        state[key] = value
       }
-    }
-  }, [state[key]])
+    },
+    [state[key]]
+  )
 }
 
 const handlers = { get: binding }

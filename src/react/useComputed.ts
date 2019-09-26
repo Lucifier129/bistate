@@ -1,30 +1,28 @@
 import { useMemo } from 'react'
 import useStaticFunction from './useStaticFunction'
-import createBistate, { mixing, mutate, watch, lock, isBistate } from '../createBistate'
 
-export default function useComputed<
-  Get extends () => any,
-  Set extends (state: ReturnType<Get>) => any
->({ get, set }: { get: Get; set: Set }, deps?: any[]) {
-  if (typeof get !== 'function') {
-    throw new Error(`Expected 'get' to be a function ,but got ${get}`)
-  }
-
-  if (typeof set !== 'function') {
-    throw new Error(`Expected 'set' to be a function ,but got ${set}`)
-  }
+export default function useComputed<S extends object>(state: S, deps?: any[]) {
+  let setter = useStaticFunction((key, value) => {
+    let descriptor = Object.getOwnPropertyDescriptor(state, key)
+    if (descriptor.set) {
+      descriptor.set(value)
+    } else {
+      state[key] = value
+    }
+  })
 
   let computed = useMemo(() => {
-    // use mix mode
-    // should not recreate bistate from the state tree returned by get()
-    let state = mixing(() => createBistate(get()) as ReturnType<Get>)
+    let descriptors = Object.getOwnPropertyDescriptors(state)
 
-    return state
+    for (let key in descriptors) {
+      let descriptor = descriptors[key]
+      if (descriptor.set) {
+        descriptor.set = value => setter(key, value)
+      }
+    }
+
+    return Object.defineProperties({}, descriptors) as S
   }, deps)
-
-  lock(computed, () => {
-    mutate(() => set(computed))
-  })
 
   return computed
 }
