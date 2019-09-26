@@ -80,7 +80,6 @@ let dirtyStateList = []
 const commit = () => {
   let list = dirtyStateList
 
-  isMutable = false
   dirtyStateList = []
 
   for (let i = 0; i < list.length; i++) {
@@ -110,6 +109,7 @@ export const mutate = <T extends () => any>(f: T): ReturnType<T> => {
     }
     return result
   } finally {
+    isMutable = previousFlag
     if (!previousFlag) commit()
   }
 }
@@ -119,11 +119,11 @@ const createBistate = <State extends object>(
   previousProxy = null
 ): Bistate<State> => {
   if (!isArray(initialState) && !isObject(initialState)) {
-    throw new Error(`Expected initialState to be array or plain object, but got ${initialState}`)
+    throw new Error(`Expected initialState to be array or object, but got ${initialState}`)
   }
 
-  let scapegoat = isArray(initialState) ? [] : ({} as State)
-  let target = isArray(initialState) ? [] : ({} as State)
+  let scapegoat = isArray(initialState) ? [] : {}
+  let target = isArray(initialState) ? [] : {}
 
   let consuming = false
   let watcher = null
