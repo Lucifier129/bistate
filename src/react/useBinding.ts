@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Bistate } from '../createBistate'
 import useComputed from './useComputed'
 
@@ -12,5 +13,5 @@ const binding = (state, key) => useComputed(() => state[key], value => (state[ke
 const handlers = { get: binding }
 
 export default function useBinding<S extends Bistate>(state: S): BindingState<S> {
-  return new Proxy(state, handlers)
+  return useMemo(() => new Proxy(state, handlers), [state])
 }
