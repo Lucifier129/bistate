@@ -163,7 +163,16 @@ function TodoInput({ text, ...props }) {
 
 ```javascript
 import { createStore, mutate, remove, isBistate, debug, undebug } from 'bistate'
-import { useBistate, useMutate, useBireducer, view, useAttr, useAttrs } from 'bistate/react'
+import { 
+  useBistate, 
+  useMutate, 
+  useBireducer, 
+  useComputed, 
+  useBinding, 
+  view, 
+  useAttr, 
+  useAttrs 
+} from 'bistate/react'
 ```
 
 ### useBistate(array | object, bistate?) -> bistate
@@ -228,6 +237,92 @@ const Test = () => {
   }
 
   // render view
+}
+```
+
+### useComputed(obj, deps) -> obj
+
+Create computed state
+
+```javascript
+let state = useBistate({ first: 'a', last: 'b' })
+
+// use getter/setter
+let computed = useComputed({
+  get value() {
+    return state.first + ' ' + state.last
+  },
+  set value(name) {
+    let [first, last] = name.split(' ')
+    state.first = first
+    state.last = last
+  }
+}, [state.first, state.last])
+
+let handleEvent = useMutate(() => {
+  console.log(computed.value) // 'a b'
+  // update
+  computed.value = 'Bill Gates'
+
+  console.log(state.first) // Bill
+  console.log(state.last) // Gates
+})
+
+```
+
+### useBinding(bistate) -> obj
+
+Create binding state
+
+A binding state is an object has only one filed `{ value }`
+
+```javascript
+let state = useBistate({ text: 'some text' })
+
+let { text } = useBinding(state)
+
+// don't do this
+// access field will trigger a react-hooks
+// you should always use ECMAScript 6 (ES2015) destructuring to get binding state
+let bindingState = useBinding(state)
+if (xxx) xxx = bindingState.xxx
+
+let handleChange = () => {
+  console.log(text.value) // some text
+  console.log(state.text) // some text
+  text.value = 'some new text'
+  console.log(text.value) // some new text
+  console.log(state.text) // some new text
+}
+```
+
+It's useful when child component needs binding state, but parent component state is not.
+
+```javascript
+function Input({ text, ...props }) {
+  let handleChange = useMutate(event => {
+    /**
+     * we just simply and safely mutate text at one place
+     * instead of every parent components need to handle `onChange` event
+     */
+    text.value = event.target.value
+  })
+  return <input type="text" {...props} onChange={handleChange} value={text.value} />
+}
+
+function App() {
+  let state = useBistate({ 
+    fieldA: 'A', 
+    fieldB: 'B', 
+    fieldC: 'C'
+  })
+  let { fieldA, fieldB, fieldC } = useBinding(state)
+
+  return <>
+    <Input text={fieldA} />
+    <Input text={fieldB} />
+    <Input text={fieldC} />
+  </>
 }
 ```
 

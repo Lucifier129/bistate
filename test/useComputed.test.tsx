@@ -169,4 +169,155 @@ describe('useComputed', () => {
     expect(both.textContent).toBe('9')
     expect(unchanged.textContent).toBe('1')
   })
+
+  it('supports multiple fileds', () => {
+    let Test = () => {
+      let original = useBistate({
+        name: {
+          first: 'Karasawa',
+          last: 'Yukiho'
+        }
+      })
+
+      let computed = useComputed(
+        {
+          get first() {
+            return original.name.first
+          },
+          set first(value) {
+            original.name.first = value
+          },
+          get last() {
+            return original.name.last
+          },
+          set last(value) {
+            original.name.last = value
+          },
+          // non getter/setter
+          name: original.name.first + ' ' + original.name.last
+        },
+        [original.name]
+      )
+
+      let handleClickOriginal = useMutate(() => {
+        original.name.first = 'Kirihara'
+        original.name.last = 'Ryouji'
+      })
+
+      let handleClickComputed = useMutate(() => {
+        computed.first = 'Karasawa'
+        computed.last = 'Yukiho'
+      })
+
+      return (
+        <>
+          <button onClick={handleClickOriginal} id="original">
+            {original.name.first} {original.name.last}
+          </button>
+          <button onClick={handleClickComputed} id="computed">
+            {computed.name}
+          </button>
+        </>
+      )
+    }
+
+    act(() => {
+      ReactDOM.render(<Test />, container)
+    })
+
+    let original = container.querySelector('#original')
+    let computed = container.querySelector('#computed')
+
+    expect(original.textContent).toBe('Karasawa Yukiho')
+    expect(computed.textContent).toBe('Karasawa Yukiho')
+
+    // click original
+    act(() => {
+      original.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(original.textContent).toBe('Kirihara Ryouji')
+    expect(computed.textContent).toBe('Kirihara Ryouji')
+
+    // click computed
+    act(() => {
+      computed.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(original.textContent).toBe('Karasawa Yukiho')
+    expect(computed.textContent).toBe('Karasawa Yukiho')
+  })
+
+  it('can pass to child component', () => {
+    let Child = ({ count }) => {
+      let handleClick = useMutate(() => {
+        count.value += 1
+      })
+      return (
+        <button onClick={handleClick} id="child">
+          {count.value}
+        </button>
+      )
+    }
+
+    let Parent = () => {
+      let state = useBistate({ count: 0 })
+      let count = useComputed({
+        get value() {
+          return state.count
+        },
+        set value(value) {
+          state.count = value
+        }
+      })
+
+      let handleClick = useMutate(() => {
+        state.count += 1
+      })
+
+      return (
+        <>
+          <button onClick={handleClick} id="parent">
+            {state.count}
+          </button>
+          <Child count={count} />
+        </>
+      )
+    }
+
+    act(() => {
+      ReactDOM.render(<Parent />, container)
+    })
+
+    let parent = container.querySelector('#parent')
+    let child = container.querySelector('#child')
+
+    expect(parent.textContent).toBe('0')
+    expect(child.textContent).toBe('0')
+
+    // click parent
+    act(() => {
+      parent.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(parent.textContent).toBe('1')
+    expect(child.textContent).toBe('1')
+
+    // click child
+    act(() => {
+      child.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(parent.textContent).toBe('2')
+    expect(child.textContent).toBe('2')
+
+    // click both
+    act(() => {
+      parent.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      child.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(parent.textContent).toBe('4')
+    expect(child.textContent).toBe('4')
+  })
 })
