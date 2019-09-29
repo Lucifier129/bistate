@@ -261,7 +261,7 @@ const createBistate = <State extends object>(
         notify()
         return result
       } else {
-        throw new Error(`state is immutable, it's not allow to set property ${key}`)
+        throw new Error(`state is immutable, it's not allowed to set property: ${key}`)
       }
     },
     deleteProperty: (_, key) => {
@@ -271,7 +271,7 @@ const createBistate = <State extends object>(
         notify()
         return result
       } else {
-        throw new Error(`state is immutable, it's not allow to delete property ${key}`)
+        throw new Error(`state is immutable, it's not allowed to delete property: ${key}`)
       }
     },
     has: (target, key) => {
