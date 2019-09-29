@@ -287,6 +287,30 @@ const createBistate = <State extends object>(
       } else {
         return Reflect.ownKeys(target)
       }
+    },
+    getPrototypeOf: target => {
+      if (isMutable && scapegoat) {
+        return Reflect.getPrototypeOf(scapegoat)
+      } else {
+        return Reflect.getPrototypeOf(target)
+      }
+    },
+    setPrototypeOf: () => {
+      throw new Error(
+        `bistate only supports plain object or array, it's not allowed to setPrototypeOf`
+      )
+    },
+    getOwnPropertyDescriptor: (target, prop) => {
+      if (isMutable && scapegoat) {
+        return Reflect.getOwnPropertyDescriptor(scapegoat, prop)
+      } else {
+        return Reflect.getOwnPropertyDescriptor(target, prop)
+      }
+    },
+    defineProperty: (_, property) => {
+      throw new Error(
+        `bistate only supports plain object or array, it's not allowed to defineProperty: ${property}`
+      )
     }
   }
 
