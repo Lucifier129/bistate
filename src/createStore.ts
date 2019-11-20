@@ -1,4 +1,4 @@
-import createBistate, { watch, Bistate } from './createBistate'
+import createBistate, { watch } from './createBistate'
 import { isFunction } from './util'
 
 export default function createStore<T extends object>(initialState: T) {
@@ -8,7 +8,7 @@ export default function createStore<T extends object>(initialState: T) {
 
   let listenerList = []
 
-  type Listener = (state: Bistate<T>) => any
+  type Listener = (state: T) => any
 
   let subscribe = (listener: Listener) => {
     if (!isFunction(listener)) {

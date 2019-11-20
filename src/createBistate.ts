@@ -1,25 +1,5 @@
 import { isFunction, isThenable, isArray, isObject } from './util'
 
-/** Object types that should never be mapped */
-type AtomicObject =
-  | Function
-  | Map<any, any>
-  | WeakMap<any, any>
-  | Set<any>
-  | WeakSet<any>
-  | Promise<any>
-  | Date
-  | RegExp
-  | Boolean
-  | Number
-  | String
-
-export type Bistate<T = object> = T extends AtomicObject
-  ? T
-  : T extends object
-  ? { -readonly [K in keyof T]: Bistate<T[K]> }
-  : T
-
 const BISTATE = Symbol('BISTATE')
 
 export const isBistate = input => !!(input && input[BISTATE])
@@ -114,10 +94,10 @@ export const mutate = <T extends () => any>(f: T): ReturnType<T> => {
   }
 }
 
-const createBistate = <State extends object>(
+const createBistate = <State extends object = any>(
   initialState: State,
   previousProxy = null
-): Bistate<State> => {
+): State => {
   if (!isArray(initialState) && !isObject(initialState)) {
     throw new Error(`Expected initialState to be array or object, but got ${initialState}`)
   }
@@ -314,7 +294,7 @@ const createBistate = <State extends object>(
     }
   }
 
-  let currentProxy = new Proxy(target, handlers) as Bistate<State>
+  let currentProxy = new Proxy(target, handlers) as State
 
   if (isArray(currentProxy)) {
     fillArrayBistate(currentProxy, initialState, target, scapegoat, previousProxy)
@@ -337,7 +317,7 @@ export default function<State extends object>(initialState: State) {
 type Unwatch = () => void
 type Watcher<T> = (state: T) => any
 
-export const watch = <T extends Bistate<any>>(state: T, watcher: Watcher<T>): Unwatch => {
+export const watch = <T extends object>(state: T, watcher: Watcher<T>): Unwatch => {
   if (!isBistate(state)) {
     throw new Error(`Expected state to be a bistate, but received ${state}`)
   }
@@ -349,35 +329,35 @@ export const watch = <T extends Bistate<any>>(state: T, watcher: Watcher<T>): Un
   return state[BISTATE].watch(watcher)
 }
 
-export const lock = <T extends Bistate<any>>(state: T, f?: Function) => {
+export const lock = <T extends object>(state: T, f?: Function) => {
   if (!isBistate(state)) {
     throw new Error(`Expected state to be a bistate, but received ${state}`)
   }
   state[BISTATE].lock(f)
 }
 
-export const unlock = <T extends Bistate<any>>(state: T) => {
+export const unlock = <T extends object>(state: T) => {
   if (!isBistate(state)) {
     throw new Error(`Expected state to be a bistate, but received ${state}`)
   }
   state[BISTATE].unlock()
 }
 
-export const debug = <T extends Bistate<any>>(state: T) => {
+export const debug = <T extends object>(state: T) => {
   if (!isBistate(state)) {
     throw new Error(`Expected state to be a bistate, but received ${state}`)
   }
   state[BISTATE].debug()
 }
 
-export const undebug = <T extends Bistate<any>>(state: T) => {
+export const undebug = <T extends object>(state: T) => {
   if (!isBistate(state)) {
     throw new Error(`Expected state to be a bistate, but received ${state}`)
   }
   state[BISTATE].undebug()
 }
 
-export const remove = <T extends Bistate<any>>(state: T) => {
+export const remove = <T extends object>(state: T) => {
   if (!isBistate(state)) {
     throw new Error(`Expected state to be a bistate, but received ${state}`)
   }

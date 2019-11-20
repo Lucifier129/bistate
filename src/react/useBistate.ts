@@ -1,13 +1,13 @@
 import { useMemo } from 'react'
-import { Bistate, isBistate, lock, unlock } from '../createBistate'
+import { isBistate, lock, unlock } from '../createBistate'
 import createStore from '../createStore'
 import { isFunction } from '../util'
 import useUpdate from './useUpdate'
 
 export default function useBistate<T extends object>(
   initialState: T | (() => T),
-  currentState?: Bistate<T>
-): Bistate<T> {
+  currentState?: T
+): T {
   let store = useMemo(() => {
     if (isFunction(initialState)) {
       initialState = (initialState as () => T)()
