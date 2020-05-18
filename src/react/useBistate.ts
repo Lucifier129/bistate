@@ -29,6 +29,3 @@ export default function useBistate<T extends object>(
 
   return isBistate(currentState) ? currentState : state
 }
-
-const a = useBistate({ a: 1 })
-const b = useBistate(() => ({ a: 1 }))
