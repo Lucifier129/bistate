@@ -4,6 +4,8 @@ import createStore from '../createStore'
 import { isFunction } from '../util'
 import useUpdate from './useUpdate'
 
+export default function useBistate<T extends object>(getInitialState: () => T, currentState?: T): T
+export default function useBistate<T extends object>(rawInitialState: T, currentState?: T): T
 export default function useBistate<T extends object>(
   initialState: T | (() => T),
   currentState?: T
@@ -27,3 +29,6 @@ export default function useBistate<T extends object>(
 
   return isBistate(currentState) ? currentState : state
 }
+
+const a = useBistate({ a: 1 })
+const b = useBistate(() => ({ a: 1 }))
