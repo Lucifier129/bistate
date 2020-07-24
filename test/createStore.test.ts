@@ -138,4 +138,9 @@ describe('createStore', () => {
 
     expect(n).toBe(2)
   })
+
+  it('should support array', () => {
+    let store = createStore(['foo', 'bar'])
+    expect(store.getState()).toStrictEqual(['foo', 'bar'])
+  })
 })
