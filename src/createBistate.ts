@@ -96,14 +96,14 @@ export const mutate = <T extends () => any>(f: T): ReturnType<T> => {
 
 const createBistate = <State extends object = any>(
   initialState: State,
-  previousProxy = null
+  previousProxy: State | null = null
 ): State => {
   if (!isArray(initialState) && !isObject(initialState)) {
     throw new Error(`Expected initialState to be array or object, but got ${initialState}`)
   }
 
-  let scapegoat = isArray(initialState) ? [] : {}
-  let target = isArray(initialState) ? [] : {}
+  let scapegoat = (isArray(initialState) ? [] : {}) as State
+  let target = (isArray(initialState) ? [] : {}) as State
 
   let consuming = false
   let watcher = null
@@ -224,7 +224,7 @@ const createBistate = <State extends object = any>(
     undebug
   }
 
-  let handlers = {
+  let handlers: ProxyHandler<State> = {
     get: (target, key) => {
       if (key === BISTATE) return internal
 
@@ -241,7 +241,7 @@ const createBistate = <State extends object = any>(
         notify()
         return result
       } else {
-        throw new Error(`state is immutable, it's not allowed to set property: ${key}`)
+        throw new Error(`state is immutable, it's not allowed to set property: ${key.toString()}`)
       }
     },
     deleteProperty: (_, key) => {
@@ -251,7 +251,9 @@ const createBistate = <State extends object = any>(
         notify()
         return result
       } else {
-        throw new Error(`state is immutable, it's not allowed to delete property: ${key}`)
+        throw new Error(
+          `state is immutable, it's not allowed to delete property: ${key.toString()}`
+        )
       }
     },
     has: (target, key) => {
@@ -289,12 +291,12 @@ const createBistate = <State extends object = any>(
     },
     defineProperty: (_, property) => {
       throw new Error(
-        `bistate only supports plain object or array, it's not allowed to defineProperty: ${property}`
+        `bistate only supports plain object or array, it's not allowed to defineProperty: ${property.toString()}`
       )
     }
   }
 
-  let currentProxy = new Proxy(target, handlers) as State
+  let currentProxy = new Proxy(target, handlers)
 
   if (isArray(currentProxy)) {
     fillArrayBistate(currentProxy, initialState, target, scapegoat, previousProxy)
