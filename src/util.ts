@@ -13,8 +13,5 @@ export const isObject = (input: any): input is Object => {
   return Object.getPrototypeOf(input) === proto
 }
 
-export type Thenable = {
-  then: Function
-}
-export const isThenable = (input: any): input is Thenable =>
+export const isThenable = (input: any): input is PromiseLike<any> =>
   !!(input && typeof input.then === 'function')
